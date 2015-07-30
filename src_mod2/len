@@ -1,0 +1,89 @@
+api.c:		        *(int *)argp = rbuf->merged_len;
+api.c:	copylen = MIN(rcvvar->rcvbuf->merged_len, len);
+api.c:	memcpy(buf, rcvvar->rcvbuf->head, copylen);
+api.c:	rcvvar->rcv_wnd = rcvvar->rcvbuf->size - 1 - rcvvar->rcvbuf->last_len;
+api.c:		if (rcvvar->rcvbuf->merged_len == 0)
+api.c:		if (!rcvvar->rcvbuf || rcvvar->rcvbuf->merged_len == 0) {
+api.c:		while (rcvvar->rcvbuf->merged_len == 0) {
+api.c:		if (!(socket->epoll & MTCP_EPOLLET) && rcvvar->rcvbuf->merged_len > 0) {
+api.c:			rcvvar->rcvbuf->merged_len == 0 && ret > 0) {
+api.c:		if (rcvvar->rcvbuf->merged_len == 0)
+api.c:		if (!rcvvar->rcvbuf || rcvvar->rcvbuf->merged_len == 0) {
+api.c:		while (rcvvar->rcvbuf->merged_len == 0) {
+api.c:		if (!(socket->epoll & MTCP_EPOLLET) && rcvvar->rcvbuf->merged_len > 0) {
+api.c:			rcvvar->rcvbuf->merged_len == 0 && bytes_read > 0) {
+api.c:	sndvar->snd_wnd = sndvar->sndbuf->size - sndvar->sndbuf->len;
+api.c:				ret, sndlen, sndvar->sndbuf->len);
+core.c:			sndvar->fss = sndvar->sndbuf->head_seq + sndvar->sndbuf->len;
+debug.c:	if (wbuf && (wbuf->buff_len + PRINT_LIMIT > LOG_BUFF_SIZE)) {
+debug.c:		wbuf->buff_len = 0;
+debug.c:		wbuf->tid = mtcp->ctx->cpu;
+debug.c:		wbuf->fid = f_idx;
+debug.c:	len = vsnprintf(wbuf->buff + wbuf->buff_len, PRINT_LIMIT, _Format, argptr);
+debug.c:	wbuf->buff_len += len;
+eventpoll.c:		if (rcvvar->rcvbuf && rcvvar->rcvbuf->merged_len > 0) {
+eventpoll.c:				(sndvar->sndbuf && sndvar->sndbuf->len < sndvar->snd_wnd)) {
+psio_module.c:	to_send_cnt = c_buf->cnt;
+psio_module.c:		start_idx = c_buf->next_to_send;
+psio_module.c:			mtcp->nstat.tx_bytes[nif] += c_buf->info[start_idx].len + 24;
+psio_module.c:			DumpPacket(mtcp, c_buf->buf + c_buf->info[start_idx].offset, 
+psio_module.c:				   c_buf->info[start_idx].len, "OUT", nif);
+tcp_in.c:	if (TCP_SEQ_GT(ack_seq, sndvar->sndbuf->head_seq + sndvar->sndbuf->len)) {
+tcp_in.c:				sndvar->sndbuf->head_seq + sndvar->sndbuf->len);
+tcp_in.c:		if (sndvar->sndbuf->len == 0) {
+tcp_in.c:	if (TCP_SEQ_GEQ(sndvar->sndbuf->head_seq, ack_seq)) {
+tcp_in.c:	rmlen = ack_seq - sndvar->sndbuf->head_seq;
+tcp_in.c:		sndvar->snd_wnd = sndvar->sndbuf->size - sndvar->sndbuf->len;
+tcp_in.c:				rcvvar->rcvbuf, rcvvar->rcvbuf->merged_len, AT_MTCP);
+tcp_in.c:	cur_stream->rcv_nxt = rcvvar->rcvbuf->head_seq + rcvvar->rcvbuf->merged_len;
+tcp_in.c:	rcvvar->rcv_wnd = rcvvar->rcvbuf->size - 1 - rcvvar->rcvbuf->last_len;
+tcp_out.c:	if (sndvar->sndbuf->len == 0) {
+tcp_out.c:		if (TCP_SEQ_LT(seq, sndvar->sndbuf->head_seq)) {
+tcp_out.c:					seq, sndvar->sndbuf->head_seq);
+tcp_out.c:		buffered_len = sndvar->sndbuf->head_seq + sndvar->sndbuf->len - seq;
+tcp_out.c:					"buffered_len: %u\n", sndvar->sndbuf->head_seq, 
+tcp_out.c:					sndvar->sndbuf->len, seq, buffered_len);
+tcp_out.c:		data = sndvar->sndbuf->head + 
+tcp_out.c:				(seq - sndvar->sndbuf->head_seq);
+tcp_out.c:								cur_stream->rcvvar->rcvbuf->head_seq + 
+tcp_out.c:								cur_stream->rcvvar->rcvbuf->merged_len)) {
+tcp_send_buffer.c:		buf->data = MPAllocateChunk(sbm->mp);
+tcp_send_buffer.c:		if (!buf->data) {
+tcp_send_buffer.c:	buf->head = buf->data;
+tcp_send_buffer.c:	buf->head_off = buf->tail_off = 0;
+tcp_send_buffer.c:	buf->len = buf->cum_len = 0;
+tcp_send_buffer.c:	buf->size = sbm->chunk_size;
+tcp_send_buffer.c:	buf->init_seq = buf->head_seq = init_seq;
+tcp_send_buffer.c:	if (buf->data) {
+tcp_send_buffer.c:		MPFreeChunk(sbm->mp, buf->data);
+tcp_send_buffer.c:		buf->data = NULL;
+tcp_send_buffer.c:	to_put = MIN(len, buf->size - buf->len);
+tcp_send_buffer.c:	if (buf->tail_off + to_put < buf->size) {
+tcp_send_buffer.c:		memcpy(buf->data + buf->tail_off, data, to_put);
+tcp_send_buffer.c:		buf->tail_off += to_put;
+tcp_send_buffer.c:		memmove(buf->data, buf->head, buf->len);
+tcp_send_buffer.c:		buf->head = buf->data;
+tcp_send_buffer.c:		buf->head_off = 0;
+tcp_send_buffer.c:		memcpy(buf->head + buf->len, data, to_put);
+tcp_send_buffer.c:		buf->tail_off = buf->len + to_put;
+tcp_send_buffer.c:	buf->len += to_put;
+tcp_send_buffer.c:	buf->cum_len += to_put;
+tcp_send_buffer.c:	to_remove = MIN(len, buf->len);
+tcp_send_buffer.c:	buf->head_off += to_remove;
+tcp_send_buffer.c:	buf->head = buf->data + buf->head_off;
+tcp_send_buffer.c:	buf->head_seq += to_remove;
+tcp_send_buffer.c:	buf->len -= to_remove;
+tcp_send_buffer.c:	if (buf->len == 0 && buf->head_off > 0) {
+tcp_send_buffer.c:		buf->head = buf->data;
+tcp_send_buffer.c:		buf->head_off = buf->tail_off = 0;
+tcp_stream.c:				stream->sndvar->sndbuf->cum_len, 
+tcp_stream.c:				stream->sndvar->sndbuf->len);
+tcp_stream.c:				stream->rcvvar->rcvbuf->cum_len, 
+tcp_stream.c:				stream->rcvvar->rcvbuf->merged_len, 
+tcp_stream.c:				stream->rcvvar->rcvbuf->last_len);
+tcp_stream.c:				sndvar->sndbuf->init_seq, sndvar->sndbuf->head_seq, 
+tcp_stream.c:				sndvar->sndbuf->len, sndvar->sndbuf->cum_len, sndvar->sndbuf->size);
+tcp_stream.c:				rcvvar->rcvbuf->init_seq, rcvvar->rcvbuf->head_seq, 
+tcp_stream.c:				rcvvar->rcvbuf->merged_len, rcvvar->rcvbuf->cum_len, 
+tcp_stream.c:				rcvvar->rcvbuf->last_len, rcvvar->rcvbuf->size);
+Binary file .tcp_out.c.swp matches
