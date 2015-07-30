@@ -741,7 +741,8 @@ CloseStreamSocket(mctx_t mctx, int sockid)
 	
 	//ckf mod
 	//compelete the last 4 pkt	
-	buf=cur_stream->sndvar->sndbuf;
+	
+	/*buf=cur_stream->sndvar->sndbuf;
 
 	if(!buf)
 		printf("ckf close error,sndbuf is null in Close!\n");
@@ -772,6 +773,7 @@ CloseStreamSocket(mctx_t mctx, int sockid)
 				printf("ckf calloc failed in mtcp_close!\n");
 		}
 	}
+	*/
 	
 	SQ_LOCK(&mtcp->ctx->close_lock);
 	cur_stream->sndvar->on_closeq = TRUE;

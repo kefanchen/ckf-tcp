@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "tcp_send_buffer.h"
 #include "tcp_sb_queue.h"
-
+#include <math.h>
 #define MAX(a, b) ((a)>(b)?(a):(b))
 #define MIN(a, b) ((a)<(b)?(a):(b))
 
@@ -116,59 +116,28 @@ SBPut(sb_manager_t sbm, struct tcp_send_buffer *buf, void *data, size_t len)
 	size_t to_put=0;
 	//ckf mod
 	size_t n =0;
-	uint32_t num_in_4 = buf->num_in_4;
-	uint32_t i,data_index=0;
+	uint32_t num_in_4 = 0;
+	uint32_t npkt = 0;
+	uint32_t i,j,data_index=0;
 	uint8_t* _data = (uint8_t*)data;
+	uint8_t redundancy[PKT_SIZE];
+	uint32_t fraction_part;
+	uint8_t zeros[PKT_SIZE];
+
+	memset(zeros,0,PKT_SIZE);
 	//compute to_put
 	n = len;
-	if(n >= PKT_SIZE - buf->pkt_frag)
-	{
-		to_put += PKT_SIZE - buf->pkt_frag;
-		n -= PKT_SIZE - buf->pkt_frag;
-		num_in_4 ++;
-		if(num_in_4 == 3)//add redundance
-		{
-			to_put += PKT_SIZE;
-			num_in_4 = 0;
-		}
-
-		while(n >= PKT_SIZE)
-		{
-			to_put += PKT_SIZE;
-			n -= PKT_SIZE;
-			num_in_4 ++;
-
-			if(num_in_4 ==3)
-			{
-				to_put += PKT_SIZE;
-				num_in_4 = 0 ;
-			}
-		}
-
-		//add the last fraction  part
-		to_put += n;
-	
-	}
-	else
-	{
-		to_put = n;
-	}
+	to_put = ceil(ceil(n/PKT_SIZE)/3) * 4 * PKT_SIZE;
 	
 	//if the remaining space is not enough
 	if(to_put > buf->size - buf->len)
 		return -2;
-	
-
 
 	/*	if (len <= 0)
 		return 0;*/
 
 	/* if no space, return -2 */
 	
-
-	
-	
-
 
 	if (buf->tail_off + to_put > buf->size) {
 		
@@ -178,75 +147,74 @@ SBPut(sb_manager_t sbm, struct tcp_send_buffer *buf, void *data, size_t len)
 		buf->head_off = 0;
 		buf->tail_off = buf->len;
 	}
-
+	
+	
 	
 	//copy the data, and redundancy if necessary
 	n = len;
+	npkt = floor(n/PKT_SIZE);
+	num_in_4 = 0;
 	data_index = 0;
-	if(n >= PKT_SIZE - buf->pkt_frag)
-	{	
-		//fill in an entire PKT
-		n -= PKT_SIZE - buf->pkt_frag;
-		memcpy(buf->data + buf->tail_off,data,PKT_SIZE - buf->pkt_frag);
-		buf->tail_off += PKT_SIZE - buf->pkt_frag;
-
-		//calculate redundancy
-		for(i = buf->pkt_frag; i<PKT_SIZE - buf->pkt_frag; i++,data_index++ )
-			buf->redundancy[i]=buf->redundancy[i]^ _data[data_index];
-		
-		buf->pkt_frag = 0;
-
-		buf->num_in_4 ++;
-		if(buf->num_in_4 == 3)//add redundance
-		{	
-			buf->num_in_4 = 0;
-			memcpy(buf->data + buf->tail_off, buf->redundancy, PKT_SIZE);
-			memset(buf->redundancy,0,PKT_SIZE);
-			buf->tail_off += PKT_SIZE;
-		}
-
-		while(n >= PKT_SIZE)
-		{
-			
-			n -= PKT_SIZE;
-			memcpy(buf->data+buf->tail_off,data+data_index,PKT_SIZE);
-			buf->tail_off += PKT_SIZE;
-
-			for(i =0;i<PKT_SIZE;i++,data_index++)
-				buf->redundancy[i]=buf->redundancy[i] ^ _data[data_index];
-
-			buf->num_in_4 ++;
-			if(buf->num_in_4 ==3)
-			{
-				buf->num_in_4 = 0 ;
-				memcpy(buf->data + buf->tail_off,buf->redundancy,PKT_SIZE);
-				buf->tail_off += PKT_SIZE;
-				memset(buf->redundancy,0,PKT_SIZE);
-			}
-		}
-
-		//add the last fraction  part
-		memcpy(buf->data+buf->tail_off,data+data_index,n);
-		buf->tail_off += n;
-		buf->pkt_frag = n;
-
-		for(i = 0;i<n;i++,data_index++)
-			buf->redundancy[i]=buf->redundancy[i] ^ _data[data_index];
+	memset(redundancy,0,PKT_SIZE);
 	
-	}
-	else
+	for( i = 0; i<npkt;i++)
 	{
-		memcpy(buf->data + buf->tail_off,data,n);
-		buf->tail_off += n;
+		memcpy(buf->data + buf->tail_off,data+data_index,PKT_SIZE);
+		buf->tail_off += PKT_SIZE;
 		
-		for(i=0; i<n;i++,data_index++)
-			buf->redundancy[i+buf->pkt_frag]=buf->redundancy[i+buf->pkt_frag] ^ 
-			_data[data_index];
+		//compute redundancy
+		for(j = 0;j<PKT_SIZE;j++,data_index++)
+			redundancy[i] = redundancy[i] ^ _data[data_index];
 
-		buf->pkt_frag+=n;
+		num_in_4 ++;
+
+		if(num_in_4 == 3)//time to insert the redundancy
+		{
+			num_in_4 = 0;
+			memcpy(buf->data + buf->tail_off,redundancy,PKT_SIZE);
+			buf->tail_off += PKT_SIZE;
+			memset(redundancy,0,PKT_SIZE);
+		}
+		
+	}
+	
+	if(n - npkt * PKT_SIZE != 0)//need to compelete an fraction part
+	{
+		fraction_part = n - npkt * PKT_SIZE;
+
+		memcpy(buf->data + buf->tail_off,data+data_index,fraction_part);
+		buf->tail_off += fraction_part;
+		
+		for(j = 0; j< PKT_SIZE; j++,data_index++)
+			redundancy[i] = redundancy[i] ^ _data[data_index];
+		
+		//compelete an pkt
+		memcpy(buf->data + buf->tail_off,zeros,PKT_SIZE-fraction_part);
+		buf->tail_off += PKT_SIZE - fraction_part;
+		num_in_4 ++;
+		if(num_in_4 == 3)//time to insert the redundancy
+		{
+			num_in_4 = 0;
+			memcpy(buf->data + buf->tail_off,redundancy,PKT_SIZE);
+			buf->tail_off += PKT_SIZE;
+			memset(redundancy,0,PKT_SIZE);
+		}
+
 	}
 
-
+	//fill int the last 4 pkt
+	if(num_in_4 != 0)
+	{	
+		while(num_in_4 < 3)
+		{
+			memcpy(buf->data + buf->tail_off,zeros,PKT_SIZE);
+			buf->tail_off += PKT_SIZE;
+			num_in_4 ++;
+		}
+		memcpy(buf->data + buf->tail_off,redundancy,PKT_SIZE);
+		buf->tail_off += PKT_SIZE;
+	}
+	
 	buf->len += to_put;
 	buf->cum_len += to_put;
 
